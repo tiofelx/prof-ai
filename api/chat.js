@@ -10,22 +10,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
+    const reqBody = {
+      model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
+      max_tokens,
+      messages: [
+        { role: 'system', content: system },
+        ...messages
+      ],
+      temperature: Number(temperature),
+    };
+
+    let response = await fetch(groqUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant',
-        max_tokens,
-        messages: [
-          { role: 'system', content: system },
-          ...messages
-        ],
-        temperature: Number(temperature),
-      }),
+      body: JSON.stringify(reqBody),
     });
+
+    // SISTEMA DE FALLBACK INVISÍVEL PARA DRIBLAR RATE LIMIT (429)
+    if (response.status === 429) {
+      reqBody.model = 'llama3-8b-8192';
+      response = await fetch(groqUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` }, body: JSON.stringify(reqBody) });
+      
+      if (response.status === 429) {
+        reqBody.model = 'gemma2-9b-it';
+        response = await fetch(groqUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.GROQ_API_KEY}` }, body: JSON.stringify(reqBody) });
+      }
+    }
 
     const data = await response.json();
 
