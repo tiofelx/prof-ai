@@ -107,12 +107,20 @@ FORMATAÇÃO VISUAL:
 3. Fluxogramas: [Etapa 1] → [Etapa 2] → [Etapa 3]
 4. Sempre finalize com: ## 📋 Resumo`;
 
-const QUIZ_SYSTEM = `Gere questões de múltipla escolha de Bioquímica Clínica em JSON puro (array de objetos). Não inclua NENHUM texto adicional. Formato exato:
-[{"question":"... (enunciado longo com caso clínico e dados) ...","options":["A)...","B)...","C)...","D)...","E)..."],"correct":0,"explanation":"..."}]
-Diretrizes:
-- Complexidade: PADRÃO ESTILO ENADE (nível de graduação avançada).
-- Use enunciados longos e bem elaborados, com casos clínicos completos, história do paciente, sintomas e valores de exames.
-- Sinta-se livre para usar o formato de afirmativas (I, II, III) típicos do ENADE nas opções.
+const QUIZ_SYSTEM = `Gere 1 questão de múltipla escolha de Bioquímica Clínica. NÃO USE JSON. Use EXATAMENTE a seguinte estrutura textual:
+@@@PERGUNTA
+[seu enunciado longo com caso clínico profundo, estilo ENADE]
+@@@OPCOES
+A) [opção 1]
+B) [opção 2]
+C) [opção 3]
+D) [opção 4]
+E) [opção 5]
+@@@CORRETA
+[APENAS A LETRA CORRETA, ex: C]
+@@@EXPLICACAO
+[sua explicação detalhada]
+
 Use: ${KNOWLEDGE}`;
 
 // ─── MARKDOWN ──────────────────────────────────────────────────
@@ -243,7 +251,7 @@ export default function App() {
 
   function typDone() { setTypIdx(-1); if (topic && !completed.includes(topic.id)) { const nc = [...completed, topic.id], nx = xp + 20; setCompleted(nc); setXp(nx); save(nc, nx, hist); } }
 
-  async function getQuiz(amount = 1, forceTest = false) { setQuizLoad(true); setMsgs([]); try { const fcs = ["paciente idoso com múltiplas comorbidades", "emergência de pronto-socorro com risco agudo", "erro na fase pré-analítica (coleta)", "caso pediátrico/neonatal grave", "paciente crônico na UTI", "quadro laboratorial atípico/raro", "exame de rotina revelando achado crítico", "toxicologia/intoxicação medicamentosa"]; const f = fcs[Math.floor(Math.random() * fcs.length)]; const pmpt = `Gere exatamente ${amount} questão inédita. PADRÃO ENADE. Tópico: ${topic?.name || "bioquímica clínica"}. DIRETRIZ CRÍTICA: Baseie o caso clínico OBRIGATORIAMENTE no contexto estrutural de: "${f}". Seja extremamente criativo nos valores de laboratório e cruze exames. NUNCA faça perguntas iguais. RESPONDA EXCLUSIVAMENTE COM UM ARRAY JSON [{}]. Seed: ${Math.random()}`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1600, 0.95); const m = t.match(/\[[\s\S]*\]/); let parsed = JSON.parse((m ? m[0] : t).replace(/```json|```/g, "").trim()); if (!Array.isArray(parsed)) parsed = [parsed]; parsed = parsed.map(q => ({...q, isTest: forceTest || amount > 1})); setQuiz(parsed); } catch { setMsgs([{ role: "assistant", content: "⚠️ A geração falhou. Pode ser que os casos clínicos ficaram tão complexos que estouraram o limite de resposta. Clique em 'Exercícios' para tentar novamente." }]); setQuiz(null); } setQuizLoad(false); }
+  async function getQuiz(amount = 1, forceTest = false) { setQuizLoad(true); setMsgs([]); try { const fcs = ["paciente idoso com comorbidades", "emergência clínica", "fase pré-analítica de laboratório", "caso atípico", "toxicologia/medicamentos", "dilema diagnóstico"]; const f = fcs[Math.floor(Math.random() * fcs.length)]; const pmpt = `Gere exatamente ${amount} questão inédita super complexa e original sobre: ${topic?.name || "bioquímica clínica"}. CONTEXTO: "${f}". RESPONDA APENAS NO FORMATO TEXTUAL COM @@@ e NADA ALÉM DISSO. Seed: ${Math.random()}`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1024, 0.95); const qM = t.match(/@@@PERGUNTA\n([\s\S]*?)@@@OPCOES/); const oM = t.match(/@@@OPCOES\n([\s\S]*?)@@@CORRETA/); const cM = t.match(/@@@CORRETA\n([\s\S]*?)@@@EXPLICACAO/); const eM = t.match(/@@@EXPLICACAO\n([\s\S]*)/i); if(qM && oM && cM && eM) { const opts = oM[1].trim().split('\n').filter(l => l.trim() !== ''); const idC = ['A','B','C','D','E'].indexOf(cM[1].trim().charAt(0).toUpperCase()); setQuiz([{ question: qM[1].trim(), options: opts, correct: idC !== -1 ? idC : 0, explanation: eM[1].trim(), isTest: forceTest || amount > 1 }]); } else throw new Error("Parse: Formatação LLM falhou"); } catch(e) { console.error(e); setMsgs([{ role: "assistant", content: "⚠️ A geração falhou. Pode ser que os casos clínicos ficaram tão complexos que estouraram o limite de resposta. Clique em 'Exercícios' para tentar novamente." }]); setQuiz(null); } setQuizLoad(false); }
 
   function selTopic(t) { setMsgs([]); setQuiz(null); setSidebar(false); send(t.prompt, t); }
 
