@@ -276,7 +276,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
           <div style={{ background: "#111120", border: "1px solid #222238", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#4fc3f7", fontWeight: 600 }}>⭐{xp}</div>
           <button onClick={() => setCasesOpen(p => !p)} style={{ background: casesOpen ? "#1a1014" : "#111120", border: `1px solid ${casesOpen ? "#ef5350" : "#222238"}`, color: casesOpen ? "#ef5350" : "#6a6a8a", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>🏥</button>
-          {started && <button onClick={() => { setMsgs([]); setQuiz(null); setTopic(null); setCasesOpen(false); send("Gere um caso clínico inusitado, avançado e original de Bioquímica Clínica. Não use doenças clichês. Forneça o laudo bioquímico completo, a história e peça pro aluno desvendar o quebra-cabeça diagnóstico."); }} style={{ background: "linear-gradient(135deg, #2b1836, #5c2049)", border: "1px solid #783561", color: "#fff", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🎲 Novo Caso</button>}
+          {started && <button onClick={() => { setMsgs([]); setStarted(false); setTopic(null); setQuiz(null); setCasesOpen(false); }} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Nova</button>}
         </div>
       </div>
 
