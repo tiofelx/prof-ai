@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { system, messages, max_tokens = 1024 } = req.body;
+  const { system, messages, max_tokens = 1024, temperature = 0.7 } = req.body;
 
   if (!messages || !system) {
     return res.status(400).json({ error: 'Missing system or messages' });
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
           { role: 'system', content: system },
           ...messages
         ],
-        temperature: 0.7,
+        temperature: Number(temperature),
       }),
     });
 

@@ -216,14 +216,15 @@ export default function App() {
   useEffect(() => { btm.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading, typIdx, quiz]);
   useEffect(() => { try { localStorage.setItem("bioq_session", JSON.stringify({ msgs, started, topic, quiz })); } catch {} }, [msgs, started, topic, quiz]);
 
-  async function api(sys, m, mt = 1024) {
+  async function api(sys, m, mt = 1024, temp = 0.7) {
   const r = await fetch("/api/chat", {  
     method: "POST", 
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ 
       system: sys, 
       messages: m, 
-      max_tokens: mt 
+      max_tokens: mt,
+      temperature: temp
     })
   });
   const d = await r.json();
@@ -242,7 +243,7 @@ export default function App() {
 
   function typDone() { setTypIdx(-1); if (topic && !completed.includes(topic.id)) { const nc = [...completed, topic.id], nx = xp + 20; setCompleted(nc); setXp(nx); save(nc, nx, hist); } }
 
-  async function getQuiz(amount = 1, forceTest = false) { setQuizLoad(true); setMsgs([]); try { const pmpt = `Gere exatamente ${amount} questão(ões) inéditas. PADRÃO ENADE DE COMPLEXIDADE: cenários clínicos profundos, valores de laboratório detalhados, raciocínio diagnóstico integrado. Tópico: ${topic?.name || "bioquímica clínica"}. RESPONDA APENAS E EXCLUSIVAMENTE COM UM ARRAY JSON VÁLIDO ENVOLVENDO COLCHETES []. Seed: ${Math.random()}`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1600); const m = t.match(/\[[\s\S]*\]/); let parsed = JSON.parse((m ? m[0] : t).replace(/```json|```/g, "").trim()); if (!Array.isArray(parsed)) parsed = [parsed]; parsed = parsed.map(q => ({...q, isTest: forceTest || amount > 1})); setQuiz(parsed); } catch { setMsgs([{ role: "assistant", content: "⚠️ A geração falhou. Pode ser que os casos clínicos ficaram tão complexos que estouraram o limite de resposta. Clique em 'Exercícios' para tentar novamente." }]); setQuiz(null); } setQuizLoad(false); }
+  async function getQuiz(amount = 1, forceTest = false) { setQuizLoad(true); setMsgs([]); try { const fcs = ["paciente idoso com múltiplas comorbidades", "emergência de pronto-socorro com risco agudo", "erro na fase pré-analítica (coleta)", "caso pediátrico/neonatal grave", "paciente crônico na UTI", "quadro laboratorial atípico/raro", "exame de rotina revelando achado crítico", "toxicologia/intoxicação medicamentosa"]; const f = fcs[Math.floor(Math.random() * fcs.length)]; const pmpt = `Gere exatamente ${amount} questão inédita. PADRÃO ENADE. Tópico: ${topic?.name || "bioquímica clínica"}. DIRETRIZ CRÍTICA: Baseie o caso clínico OBRIGATORIAMENTE no contexto estrutural de: "${f}". Seja extremamente criativo nos valores de laboratório e cruze exames. NUNCA faça perguntas iguais. RESPONDA EXCLUSIVAMENTE COM UM ARRAY JSON [{}]. Seed: ${Math.random()}`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1600, 0.95); const m = t.match(/\[[\s\S]*\]/); let parsed = JSON.parse((m ? m[0] : t).replace(/```json|```/g, "").trim()); if (!Array.isArray(parsed)) parsed = [parsed]; parsed = parsed.map(q => ({...q, isTest: forceTest || amount > 1})); setQuiz(parsed); } catch { setMsgs([{ role: "assistant", content: "⚠️ A geração falhou. Pode ser que os casos clínicos ficaram tão complexos que estouraram o limite de resposta. Clique em 'Exercícios' para tentar novamente." }]); setQuiz(null); } setQuizLoad(false); }
 
   function selTopic(t) { setMsgs([]); setQuiz(null); setSidebar(false); send(t.prompt, t); }
 
@@ -281,8 +282,9 @@ export default function App() {
           </div>)}
           {!loading && started && typIdx === -1 && <div style={{ display: "flex", gap: 6, padding: "2px 35px", flexWrap: "wrap", animation: "fadeUp .3s" }}>
             {(!quiz || quiz.length === 0) && <button onClick={() => getQuiz(1)} disabled={quizLoad} style={{ background: "#111120", border: "1px solid #222238", color: "#4fc3f7", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{quizLoad ? "⏳" : "🧠 Quiz"}</button>}
-            <button onClick={() => send("Mais detalhes e exemplos práticos.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>📝 Aprofundar</button>
-            <button onClick={() => send("Explique de outro jeito, mais simples.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>🔄 Simplificar</button>
+            {(!quiz || quiz.length === 0) && <button onClick={() => send("Mais detalhes e exemplos práticos.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>📝 Aprofundar</button>}
+            {(!quiz || quiz.length === 0) && <button onClick={() => send("Explique de outro jeito, mais simples.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>🔄 Simplificar</button>}
+            {(!quiz || quiz.length === 0) && <button onClick={() => send("Me mostre exemplos de como resolver os cálculos clínicos deste assunto passo a passo (como fórmula de Friedewald, CKD-EPI, Cockcroft-Gault, Índice de De Ritis, GAP anionico, etc) usando parâmetros fictícios.")} style={{ background: "#111120", border: "1px solid #222238", color: "#cddc39", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>🧮 Cálculos</button>}
             <button onClick={() => getQuiz(1, true)} disabled={quizLoad} style={{ background: "#111120", border: "1px solid #222238", color: "#ab47bc", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{quizLoad ? "⏳" : (quiz && quiz.length > 0 ? "🔄 Gerar Outra" : "📋 Exercícios")}</button>
           </div>}
           {quiz?.length > 0 && <div style={{ padding: "10px 35px", animation: "fadeUp .25s", display: "flex", flexDirection: "column", gap: 6 }}>{quiz.map((q, idx) => <QuizCard key={idx} quiz={q} onResult={ok => { const nx = xp + (ok ? 15 : 5); setXp(nx); save(completed, nx, hist); }} />)}</div>}
