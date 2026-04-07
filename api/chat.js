@@ -10,31 +10,45 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'HTTP-Referer': process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: process.env.AI_MODEL || 'qwen/qwen3.6-plus:free',
+        model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
         max_tokens,
-        messages: [{ role: 'system', content: system }, ...messages],
+        messages: [
+          { role: 'system', content: system },
+          ...messages
+        ],
+        temperature: 0.7,
       }),
     });
 
     const data = await response.json();
 
     if (data.error) {
-      return res.status(429).json({ error: data.error.message || 'Model rate limited', content: '' });
+      console.error('Groq API Error:', data.error);
+      return res.status(429).json({ 
+        error: data.error.message || 'API Error', 
+        content: '' 
+      });
     }
 
-    const raw = data.choices?.[0]?.message?.content || '';
-    const clean = raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Remove thinking tags se existirem (para modelos de raciocínio)
+    const clean = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
     return res.status(200).json({ content: clean });
+    
   } catch (err) {
-    return res.status(500).json({ error: err.message, content: '' });
+    console.error('Server Error:', err);
+    return res.status(500).json({ 
+      error: 'Erro interno do servidor', 
+      content: '' 
+    });
   }
 }

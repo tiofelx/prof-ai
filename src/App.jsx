@@ -211,11 +211,19 @@ export default function App() {
   useEffect(() => { btm.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading, typIdx, quiz]);
 
   async function api(sys, m, mt = 4096) {
-    const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system: sys, messages: m, max_tokens: mt }) });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error);
-    return d.content || "";
-  }
+  const r = await fetch("/api/chat", {  
+    method: "POST", 
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ 
+      system: sys, 
+      messages: m, 
+      max_tokens: mt 
+    })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error);
+  return d.content || "";
+}
 
   async function send(txt, tp = null) {
     if (tp) { setTopic(tp); const nh = [...hist.filter(h => h.id !== tp.id), { id: tp.id, name: tp.name, icon: tp.icon, time: Date.now() }]; setHist(nh); save(completed, xp, nh); }
