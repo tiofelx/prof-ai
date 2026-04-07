@@ -107,8 +107,8 @@ FORMATAÇÃO VISUAL:
 3. Fluxogramas: [Etapa 1] → [Etapa 2] → [Etapa 3]
 4. Sempre finalize com: ## 📋 Resumo`;
 
-const QUIZ_SYSTEM = `Gere quiz de Bioquímica Clínica em JSON puro, sem markdown. Formato:
-{"question":"...","options":["A)...","B)...","C)...","D)..."],"correct":0,"explanation":"..."}
+const QUIZ_SYSTEM = `Gere testes de múltipla escolha de Bioquímica Clínica em JSON puro (array de objetos). Não inclua NENHUM texto adicional ou markdown. Formato exato:
+[{"question":"...","options":["A)...","B)...","C)...","D)..."],"correct":0,"explanation":"..."}]
 Nível: 7º semestre Biomedicina. Use: ${KNOWLEDGE}`;
 
 // ─── MARKDOWN ──────────────────────────────────────────────────
@@ -175,7 +175,7 @@ function TypedMsg({ content, onDone }) { const { shown, done, skip } = useTyping
 function StaticMsg({ content }) { return <div>{parseMsg(content).map((p, i) => p.type === "c" ? <NoteBlock key={i} code={p.c} /> : <div key={i}><RichText content={p.c} /></div>)}</div>; }
 
 // ─── QUIZ ──────────────────────────────────────────────────────
-function QuizCard({ quiz, onResult }) { const [sel, setSel] = useState(null); const ok = sel === quiz.correct; return <div style={{ background: "#10101e", border: "1px solid #222238", borderRadius: 12, padding: 14, margin: "10px 0" }}><div style={{ fontSize: 11, color: "#4fc3f7", fontWeight: 700, marginBottom: 6 }}>🧠 QUIZ</div><div style={{ color: "#d0d0e0", fontSize: 13.5, marginBottom: 10, lineHeight: 1.5 }}>{quiz.question}</div><div style={{ display: "flex", flexDirection: "column", gap: 5 }}>{quiz.options.map((o, i) => { const ch = sel === i; return <button key={i} onClick={() => { if (sel === null) { setSel(i); onResult(i === quiz.correct); } }} style={{ background: sel === null ? "#151528" : i === quiz.correct ? "#0d2818" : ch ? "#2d1014" : "#151528", border: `1px solid ${sel === null ? "#2a2a4a" : i === quiz.correct ? "#4caf50" : ch ? "#e05555" : "#2a2a4a"}`, color: "#d0d0e0", borderRadius: 8, padding: "9px 12px", cursor: sel === null ? "pointer" : "default", fontSize: 13, textAlign: "left" }}>{o}{sel !== null && i === quiz.correct && " ✅"}{ch && !ok && " ❌"}</button>; })}</div>{sel !== null && <div style={{ marginTop: 8, padding: "8px 10px", background: ok ? "#0a1e14" : "#1e0a0e", borderRadius: 6, fontSize: 12.5, color: ok ? "#88d4ab" : "#e8a0a0", lineHeight: 1.5 }}>{ok ? "🎉 " : "💡 "}{quiz.explanation}</div>}</div>; }
+function QuizCard({ quiz, onResult }) { const [sel, setSel] = useState(null); const ok = sel === quiz.correct; return <div style={{ background: "#10101e", border: "1px solid #222238", borderRadius: 12, padding: 14, margin: "10px auto", maxWidth: 650, width: "100%" }}><div style={{ fontSize: 11, color: "#4fc3f7", fontWeight: 700, marginBottom: 6 }}>🧠 QUIZ</div><div style={{ color: "#d0d0e0", fontSize: 13.5, marginBottom: 10, lineHeight: 1.5 }}>{quiz.question}</div><div style={{ display: "flex", flexDirection: "column", gap: 5 }}>{quiz.options.map((o, i) => { const ch = sel === i; return <button key={i} onClick={() => { if (sel === null) { setSel(i); onResult(i === quiz.correct); } }} style={{ background: sel === null ? "#151528" : i === quiz.correct ? "#0d2818" : ch ? "#2d1014" : "#151528", border: `1px solid ${sel === null ? "#2a2a4a" : i === quiz.correct ? "#4caf50" : ch ? "#e05555" : "#2a2a4a"}`, color: "#d0d0e0", borderRadius: 8, padding: "9px 12px", cursor: sel === null ? "pointer" : "default", fontSize: 13, textAlign: "left" }}>{o}{sel !== null && i === quiz.correct && " ✅"}{ch && !ok && " ❌"}</button>; })}</div>{sel !== null && <div style={{ marginTop: 8, padding: "8px 10px", background: ok ? "#0a1e14" : "#1e0a0e", borderRadius: 6, fontSize: 12.5, color: ok ? "#88d4ab" : "#e8a0a0", lineHeight: 1.5 }}>{ok ? "🎉 " : "💡 "}{quiz.explanation}</div>}</div>; }
 
 // ─── PANELS ────────────────────────────────────────────────────
 function CasesPanel({ onClose, onSelect }) { return <div style={{ background: "#0d1117", borderTop: "1px solid #1e2a3a", padding: 14, flexShrink: 0 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><span style={{ color: "#ef5350", fontSize: 12, fontWeight: 700 }}>🏥 Casos Clínicos</span><button onClick={onClose} style={{ background: "none", border: "none", color: "#5a5a7a", cursor: "pointer", fontSize: 15 }}>✕</button></div>{CLINICAL_CASES.map((c, i) => <button key={i} onClick={() => onSelect(c.prompt)} style={{ display: "block", width: "100%", background: "#161b22", border: "1px solid #2a3a4a", color: "#c8d6e5", borderRadius: 8, padding: "10px 14px", cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 6 }}>🏥 {c.title}</button>)}</div>; }
@@ -229,14 +229,14 @@ export default function App() {
     if (tp) { setTopic(tp); const nh = [...hist.filter(h => h.id !== tp.id), { id: tp.id, name: tp.name, icon: tp.icon, time: Date.now() }]; setHist(nh); save(completed, xp, nh); }
     const nm = [...msgs, { role: "user", content: txt }];
     setMsgs(nm); setInput(""); setLoading(true); setStarted(true); setQuiz(null); setSidebar(false); setCasesOpen(false);
-    try { const t = await api(buildSystemPrompt(lvl), nm.map(m => ({ role: m.role, content: m.content }))); if (!t) throw new Error("empty"); setMsgs(p => [...p, { role: "assistant", content: t }]); setTypIdx(nm.length); }
+    try { const t = await api(buildSystemPrompt(lvl), nm.slice(-8).map(m => ({ role: m.role, content: m.content }))); if (!t) throw new Error("empty"); setMsgs(p => [...p, { role: "assistant", content: t }]); setTypIdx(nm.length); }
     catch { setMsgs(p => [...p, { role: "assistant", content: "⚠️ Erro de conexão. Tente novamente." }]); }
     setLoading(false);
   }
 
   function typDone() { setTypIdx(-1); if (topic && !completed.includes(topic.id)) { const nc = [...completed, topic.id], nx = xp + 20; setCompleted(nc); setXp(nx); save(nc, nx, hist); } }
 
-  async function getQuiz() { setQuizLoad(true); try { const t = await api(QUIZ_SYSTEM, [{ role: "user", content: `Quiz: ${topic?.name || "bioquímica clínica"}. 7º sem.` }], 600); setQuiz(JSON.parse(t.replace(/```json|```/g, "").trim())); } catch { setQuiz(null); } setQuizLoad(false); }
+  async function getQuiz(amount = 1) { setQuizLoad(true); try { const pmpt = `Gere exatamente ${amount} questão(ões) sobre: ${topic?.name || "bioquímica clínica"}. 7º sem. APENAS UM ARRAY JSON VÁLIDO.`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1500); let parsed = JSON.parse(t.replace(/```json|```/g, "").trim()); if (!Array.isArray(parsed)) parsed = [parsed]; setQuiz(parsed); } catch { setQuiz(null); } setQuizLoad(false); }
 
   function selTopic(t) { setMsgs([]); setQuiz(null); setSidebar(false); send(t.prompt, t); }
 
@@ -274,12 +274,12 @@ export default function App() {
             </div>
           </div>)}
           {!loading && msgs.length > 1 && typIdx === -1 && <div style={{ display: "flex", gap: 6, padding: "2px 35px", flexWrap: "wrap", animation: "fadeUp .3s" }}>
-            {!quiz && <button onClick={getQuiz} disabled={quizLoad} style={{ background: "#111120", border: "1px solid #222238", color: "#4fc3f7", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{quizLoad ? "⏳" : "🧠 Quiz"}</button>}
+            {(!quiz || quiz.length === 0) && <button onClick={() => getQuiz(1)} disabled={quizLoad} style={{ background: "#111120", border: "1px solid #222238", color: "#4fc3f7", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{quizLoad ? "⏳" : "🧠 Quiz"}</button>}
             <button onClick={() => send("Mais detalhes e exemplos práticos.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>📝 Aprofundar</button>
             <button onClick={() => send("Explique de outro jeito, mais simples.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>🔄 Simplificar</button>
-            <button onClick={() => send("Me passe exercícios e questões de prova.")} style={{ background: "#111120", border: "1px solid #222238", color: "#ab47bc", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>📋 Exercícios</button>
+            {(!quiz || quiz.length === 0) && <button onClick={() => getQuiz(3)} disabled={quizLoad} style={{ background: "#111120", border: "1px solid #222238", color: "#ab47bc", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{quizLoad ? "⏳" : "📋 Exercícios"}</button>}
           </div>}
-          {quiz?.options?.length > 0 && <div style={{ padding: "0 35px", animation: "fadeUp .25s" }}><QuizCard quiz={quiz} onResult={ok => { const nx = xp + (ok ? 15 : 5); setXp(nx); save(completed, nx, hist); }} /></div>}
+          {quiz?.length > 0 && <div style={{ padding: "10px 35px", animation: "fadeUp .25s", display: "flex", flexDirection: "column", gap: 6 }}>{quiz.map((q, idx) => <QuizCard key={idx} quiz={q} onResult={ok => { const nx = xp + (ok ? 15 : 5); setXp(nx); save(completed, nx, hist); }} />)}</div>}
           {loading && <div style={{ display: "flex", alignItems: "center", gap: 7, color: "#5a5a7a", fontSize: 12, padding: "0 35px" }}><span style={{ animation: "pulse 1.2s infinite" }}>🧪</span> Preparando explicação...</div>}
           <div ref={btm} />
         </>)}
