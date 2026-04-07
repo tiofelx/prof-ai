@@ -78,10 +78,13 @@ const CURRICULUM = [
 const ALL_TOPICS = CURRICULUM.flatMap(l => l.topics.map(t => ({ ...t, level: l.level, levelLabel: l.label, levelColor: l.color })));
 
 const CLINICAL_CASES = [
-  { title: "Dor torácica — IAM?", prompt: "Caso: Homem, 58 anos, hipertenso, dor torácica há 4h. ECG inconclusivo. Troponina, CK-MB e mioglobina colhidas. Guie o aluno: qual marcador alterado nesse tempo? O que esperar nas próximas horas?" },
-  { title: "Edema e creatinina elevada", prompt: "Caso: Mulher, 65 anos, diabética/hipertensa, edema de MMII, creatinina 3,2 (basal 1,0). LRA ou DRC? TFG? Que exames pedir?" },
-  { title: "Icterícia no adulto jovem", prompt: "Caso: Homem, 28 anos, pele amarelada, urina escura. BT 6,0 (BD 4,5/BI 1,5), ALT 850, AST 620, FA leve↑, GGT normal. Anti-HAV IgM positivo. Guie o raciocínio." },
+  { title: "Dor torácica — IAM?", prompt: "Caso: Homem, 58 anos, hipertenso, dor torácica há 4h. ECG inconclusivo. Troponina, CK-MB e mioglobina colhidas. Guie o aluno: qual marcador alterado nesse tempo?" },
+  { title: "Edema e creatinina elevada", prompt: "Caso: Mulher, 65 anos, diabética, edema de MMII, creatinina 3,2 (basal 1,0). LRA ou DRC? TFG? Que exames pedir?" },
+  { title: "Icterícia no adulto jovem", prompt: "Caso: Homem, 28 anos, pele amarelada, urina escura. BT 6,0 (BD 4,5/BI 1,5), ALT 850, AST 620, FA leve↑. Anti-HAV IgM positivo. Explique." },
   { title: "Perfil lipídico alterado", prompt: "Caso: Mulher, 45 anos, IMC 32. CT 280, LDL 190, HDL 35, TG 320. Pode usar Friedewald? Quais valores alterados? Risco CV?" },
+  { title: "Sódio perigosamente baixo", prompt: "Caso: Mulher, 75 anos, sonolenta. Na 118 mEq/L, K 3.0 mEq/L, osmolaridade sérica reduzida. Avalie as causas de hiponatremia hipotônica extrema." },
+  { title: "Abdome agudo (Pancreatite)", prompt: "Caso: Homem, 42 anos, etilista, dor em barra. Amilase 1200 U/L, Lipase 3500 U/L, Cálcio 7,5 mg/dL. Explique a intersecção metabólica." },
+  { title: "Cetoacidose em pediatria", prompt: "Caso: Menino, 10 anos, poliúria intensa, hálito cetônico. Glicose 480 mg/dL, pH 7,10, HCO3 12. Cetoacidose diabética? O que ocorre bioquimicamente?" }
 ];
 
 // ─── SYSTEM PROMPT ─────────────────────────────────────────────
@@ -190,7 +193,21 @@ function StaticMsg({ content }) { return <div>{parseMsg(content).map((p, i) => p
 function QuizCard({ quiz, onResult }) { const [sel, setSel] = useState(null); const ok = sel === quiz.correct; return <div style={{ background: "#10101e", border: "1px solid #222238", borderRadius: 12, padding: 14, margin: "10px auto", maxWidth: 650, width: "100%" }}><div style={{ fontSize: 11, color: "#4fc3f7", fontWeight: 700, marginBottom: 6 }}>{quiz.isTest ? "📋 TESTE" : "🧠 QUIZ"}</div><div style={{ color: "#d0d0e0", fontSize: 13.5, marginBottom: 10, lineHeight: 1.5 }}>{quiz.question}</div><div style={{ display: "flex", flexDirection: "column", gap: 5 }}>{quiz.options.map((o, i) => { const ch = sel === i; return <button key={i} onClick={() => { if (sel === null) { setSel(i); onResult(i === quiz.correct); } }} style={{ background: sel === null ? "#151528" : i === quiz.correct ? "#0d2818" : ch ? "#2d1014" : "#151528", border: `1px solid ${sel === null ? "#2a2a4a" : i === quiz.correct ? "#4caf50" : ch ? "#e05555" : "#2a2a4a"}`, color: "#d0d0e0", borderRadius: 8, padding: "9px 12px", cursor: sel === null ? "pointer" : "default", fontSize: 13, textAlign: "left" }}>{o}{sel !== null && i === quiz.correct && " ✅"}{ch && !ok && " ❌"}</button>; })}</div>{sel !== null && <div style={{ marginTop: 8, padding: "8px 10px", background: ok ? "#0a1e14" : "#1e0a0e", borderRadius: 6, fontSize: 12.5, color: ok ? "#88d4ab" : "#e8a0a0", lineHeight: 1.5 }}>{ok ? "🎉 " : "💡 "}{quiz.explanation}</div>}</div>; }
 
 // ─── PANELS ────────────────────────────────────────────────────
-function CasesPanel({ onClose, onSelect }) { return <div style={{ background: "#0d1117", borderTop: "1px solid #1e2a3a", padding: 14, flexShrink: 0 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><span style={{ color: "#ef5350", fontSize: 12, fontWeight: 700 }}>🏥 Casos Clínicos</span><button onClick={onClose} style={{ background: "none", border: "none", color: "#5a5a7a", cursor: "pointer", fontSize: 15 }}>✕</button></div>{CLINICAL_CASES.map((c, i) => <button key={i} onClick={() => onSelect(c.prompt)} style={{ display: "block", width: "100%", background: "#161b22", border: "1px solid #2a3a4a", color: "#c8d6e5", borderRadius: 8, padding: "10px 14px", cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 6 }}>🏥 {c.title}</button>)}</div>; }
+function CasesPanel({ onClose, onSelect }) { 
+  const randCases = React.useMemo(() => [...CLINICAL_CASES].sort(() => 0.5 - Math.random()).slice(0, 3), []);
+  return (
+    <div style={{ background: "#0d1117", borderTop: "1px solid #1e2a3a", padding: "14px 12px", flexShrink: 0 }}>
+      <div style={{ maxWidth: 700, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ color: "#ef5350", fontSize: 12, fontWeight: 700 }}>🏥 Galeria de Casos</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#5a5a7a", cursor: "pointer", fontSize: 15 }}>✕</button>
+        </div>
+        <button onClick={() => onSelect("Gere um caso clínico inusitado, avançado e original de Bioquímica Clínica. Não use doenças clichês. Forneça o laudo bioquímico completo, a queixa e peça pro aluno desvendar o quebra-cabeça diagnóstico.")} style={{ display: "block", width: "100%", background: "linear-gradient(135deg, #2b1836, #5c2049)", border: "1px solid #783561", color: "#fff", borderRadius: 8, padding: "10px 14px", cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 12, fontWeight: 700, boxShadow: "0 2px 10px rgba(92,32,73,0.3)" }}>🎲 Sortear Caso Aleatório (Nível Mestre)</button>
+        {randCases.map((c, i) => <button key={i} onClick={() => onSelect(c.prompt)} style={{ display: "block", width: "100%", background: "#161b22", border: "1px solid #2a3a4a", color: "#c8d6e5", borderRadius: 8, padding: "10px 14px", cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 6 }}>📋 {c.title}</button>)}
+      </div>
+    </div>
+  ); 
+}
 
 function Sidebar({ open, onClose, completed, currentLevel, onSelect, xp, history }) {
   const pct = Math.round((completed.length / ALL_TOPICS.length) * 100);
@@ -263,7 +280,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 5, alignItems: "center", flexShrink: 0 }}>
           <div style={{ background: "#111120", border: "1px solid #222238", borderRadius: 6, padding: "3px 8px", fontSize: 11, color: "#4fc3f7", fontWeight: 600 }}>⭐{xp}</div>
           <button onClick={() => setCasesOpen(p => !p)} style={{ background: casesOpen ? "#1a1014" : "#111120", border: `1px solid ${casesOpen ? "#ef5350" : "#222238"}`, color: casesOpen ? "#ef5350" : "#6a6a8a", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>🏥</button>
-          {started && <button onClick={() => { setMsgs([]); setStarted(false); setTopic(null); setQuiz(null); }} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11 }}>Nova</button>}
+          {started && <button onClick={() => { setMsgs([]); setQuiz(null); setTopic(null); setCasesOpen(false); send("Gere um caso clínico inusitado, avançado e original de Bioquímica Clínica. Não use doenças clichês. Forneça o laudo bioquímico completo, a história e peça pro aluno desvendar o quebra-cabeça diagnóstico."); }} style={{ background: "linear-gradient(135deg, #2b1836, #5c2049)", border: "1px solid #783561", color: "#fff", borderRadius: 6, padding: "4px 8px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>🎲 Novo Caso</button>}
         </div>
       </div>
 
