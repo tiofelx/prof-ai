@@ -203,16 +203,18 @@ function Sidebar({ open, onClose, completed, currentLevel, onSelect, xp, history
 
 // ─── MAIN ──────────────────────────────────────────────────────
 export default function App() {
-  const [msgs, setMsgs] = useState([]); const [input, setInput] = useState(""); const [loading, setLoading] = useState(false);
-  const [started, setStarted] = useState(false); const [sidebar, setSidebar] = useState(false); const [casesOpen, setCasesOpen] = useState(false);
-  const [completed, setCompleted] = useState([]); const [xp, setXp] = useState(0); const [topic, setTopic] = useState(null);
-  const [typIdx, setTypIdx] = useState(-1); const [quiz, setQuiz] = useState(null); const [quizLoad, setQuizLoad] = useState(false);
+  const [init] = useState(() => { try { return JSON.parse(localStorage.getItem("bioq_session")) || {}; } catch { return {}; } });
+  const [msgs, setMsgs] = useState(init.msgs || []); const [input, setInput] = useState(""); const [loading, setLoading] = useState(false);
+  const [started, setStarted] = useState(init.started || false); const [sidebar, setSidebar] = useState(false); const [casesOpen, setCasesOpen] = useState(false);
+  const [completed, setCompleted] = useState([]); const [xp, setXp] = useState(0); const [topic, setTopic] = useState(init.topic || null);
+  const [typIdx, setTypIdx] = useState(-1); const [quiz, setQuiz] = useState(init.quiz || null); const [quizLoad, setQuizLoad] = useState(false);
   const [hist, setHist] = useState([]); const btm = useRef(null);
   const lvl = completed.length < 4 ? 1 : completed.length < 8 ? 2 : completed.length < 12 ? 3 : 4;
 
   useEffect(() => { try { const d = JSON.parse(localStorage.getItem("bioq") || "{}"); setCompleted(d.c || []); setXp(d.x || 0); setHist(d.h || []); } catch {} }, []);
   const save = useCallback((c, x, h) => { try { localStorage.setItem("bioq", JSON.stringify({ c, x, h })); } catch {} }, []);
   useEffect(() => { btm.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading, typIdx, quiz]);
+  useEffect(() => { try { localStorage.setItem("bioq_session", JSON.stringify({ msgs, started, topic, quiz })); } catch {} }, [msgs, started, topic, quiz]);
 
   async function api(sys, m, mt = 1024) {
   const r = await fetch("/api/chat", {  
