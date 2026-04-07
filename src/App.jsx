@@ -210,7 +210,7 @@ export default function App() {
   const save = useCallback((c, x, h) => { try { localStorage.setItem("bioq", JSON.stringify({ c, x, h })); } catch {} }, []);
   useEffect(() => { btm.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, loading, typIdx, quiz]);
 
-  async function api(sys, m, mt = 4096) {
+  async function api(sys, m, mt = 1024) {
   const r = await fetch("/api/chat", {  
     method: "POST", 
     headers: { "Content-Type": "application/json" },

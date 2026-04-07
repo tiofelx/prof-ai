@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { system, messages, max_tokens = 4096 } = req.body;
+  const { system, messages, max_tokens = 1024 } = req.body;
 
   if (!messages || !system) {
     return res.status(400).json({ error: 'Missing system or messages' });
