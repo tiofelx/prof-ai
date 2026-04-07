@@ -228,14 +228,10 @@ export default function App() {
   const r = await fetch("/api/chat", {  
     method: "POST", 
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ 
-      system: sys, 
-      messages: m, 
-      max_tokens: mt,
-      temperature: temp
-    })
+    body: JSON.stringify({ system: sys, messages: m, max_tokens: mt, temperature: temp })
   });
   const d = await r.json();
+  if (r.status === 429) throw new Error("429");
   if (d.error) throw new Error(d.error);
   return d.content || "";
 }
@@ -244,14 +240,14 @@ export default function App() {
     if (tp) { setTopic(tp); const nh = [...hist.filter(h => h.id !== tp.id), { id: tp.id, name: tp.name, icon: tp.icon, time: Date.now() }]; setHist(nh); save(completed, xp, nh); }
     const nm = [...msgs, { role: "user", content: txt }];
     setMsgs(nm); setInput(""); setLoading(true); setStarted(true); setQuiz(null); setSidebar(false); setCasesOpen(false);
-    try { const t = await api(buildSystemPrompt(lvl), nm.slice(-8).map(m => ({ role: m.role, content: m.content }))); if (!t) throw new Error("empty"); setMsgs(p => [...p, { role: "assistant", content: t }]); setTypIdx(nm.length); }
-    catch { setMsgs(p => [...p, { role: "assistant", content: "⚠️ Erro de conexão. Tente novamente." }]); }
+    try { const t = await api(buildSystemPrompt(lvl), nm.slice(-4).map(m => ({ role: m.role, content: m.content }))); if (!t) throw new Error("empty"); setMsgs(p => [...p, { role: "assistant", content: t }]); setTypIdx(nm.length); }
+    catch(e) { setMsgs(p => [...p, { role: "assistant", content: e.message === "429" ? "⏳ Limite global do servidor gratuito atingido (muitas chamadas em 1 minuto). Por favor, aguarde cerca de 30 a 60 segundos e reenvie!" : "⚠️ Erro de conexão. Tente novamente." }]); }
     setLoading(false);
   }
 
   function typDone() { setTypIdx(-1); if (topic && !completed.includes(topic.id)) { const nc = [...completed, topic.id], nx = xp + 20; setCompleted(nc); setXp(nx); save(nc, nx, hist); } }
 
-  async function getQuiz(amount = 1, forceTest = false) { setQuizLoad(true); setMsgs([]); try { const fcs = ["paciente idoso com comorbidades", "emergência clínica", "fase pré-analítica de laboratório", "caso atípico", "toxicologia/medicamentos", "dilema diagnóstico"]; const f = fcs[Math.floor(Math.random() * fcs.length)]; const pmpt = `Gere exatamente ${amount} questão inédita super complexa e original sobre: ${topic?.name || "bioquímica clínica"}. CONTEXTO: "${f}". RESPONDA APENAS NO FORMATO TEXTUAL COM @@@ e NADA ALÉM DISSO. Seed: ${Math.random()}`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1024, 0.95); const qM = t.match(/@@@PERGUNTA\n([\s\S]*?)@@@OPCOES/); const oM = t.match(/@@@OPCOES\n([\s\S]*?)@@@CORRETA/); const cM = t.match(/@@@CORRETA\n([\s\S]*?)@@@EXPLICACAO/); const eM = t.match(/@@@EXPLICACAO\n([\s\S]*)/i); if(qM && oM && cM && eM) { const opts = oM[1].trim().split('\n').filter(l => l.trim() !== ''); const idC = ['A','B','C','D','E'].indexOf(cM[1].trim().charAt(0).toUpperCase()); setQuiz([{ question: qM[1].trim(), options: opts, correct: idC !== -1 ? idC : 0, explanation: eM[1].trim(), isTest: forceTest || amount > 1 }]); } else throw new Error("Parse: Formatação LLM falhou"); } catch(e) { console.error(e); setMsgs([{ role: "assistant", content: "⚠️ A geração falhou. Pode ser que os casos clínicos ficaram tão complexos que estouraram o limite de resposta. Clique em 'Exercícios' para tentar novamente." }]); setQuiz(null); } setQuizLoad(false); }
+  async function getQuiz(amount = 1, forceTest = false) { setQuizLoad(true); setMsgs([]); try { const fcs = ["paciente idoso com comorbidades", "emergência clínica", "fase pré-analítica de laboratório", "caso atípico", "toxicologia/medicamentos", "dilema diagnóstico"]; const f = fcs[Math.floor(Math.random() * fcs.length)]; const pmpt = `Gere exatamente ${amount} questão inédita super complexa e original sobre: ${topic?.name || "bioquímica clínica"}. CONTEXTO: "${f}". RESPONDA APENAS NO FORMATO TEXTUAL COM @@@ e NADA ALÉM DISSO. Seed: ${Math.random()}`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1024, 0.95); const qM = t.match(/@@@PERGUNTA\n([\s\S]*?)@@@OPCOES/); const oM = t.match(/@@@OPCOES\n([\s\S]*?)@@@CORRETA/); const cM = t.match(/@@@CORRETA\n([\s\S]*?)@@@EXPLICACAO/); const eM = t.match(/@@@EXPLICACAO\n([\s\S]*)/i); if(qM && oM && cM && eM) { const opts = oM[1].trim().split('\n').filter(l => l.trim() !== ''); const idC = ['A','B','C','D','E'].indexOf(cM[1].trim().charAt(0).toUpperCase()); setQuiz([{ question: qM[1].trim(), options: opts, correct: idC !== -1 ? idC : 0, explanation: eM[1].trim(), isTest: forceTest || amount > 1 }]); } else throw new Error("Parse: Formatação LLM falhou"); } catch(e) { console.error(e); setMsgs([{ role: "assistant", content: e.message === "429" ? "⏳ A placa Rápido/Llama gratuita saturou a quantidade de tokens permitidos neste exato minuto. Aguarde cerca de 60 segundinhos e tente clicar de novo!" : "⚠️ A geração falhou. O prompt pode não ter sido interpretado corretamente. Clique em 'Exercícios' para tentar novamente." }]); setQuiz(null); } setQuizLoad(false); }
 
   function selTopic(t) { setMsgs([]); setQuiz(null); setSidebar(false); send(t.prompt, t); }
 
