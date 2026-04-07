@@ -107,9 +107,13 @@ FORMATAÇÃO VISUAL:
 3. Fluxogramas: [Etapa 1] → [Etapa 2] → [Etapa 3]
 4. Sempre finalize com: ## 📋 Resumo`;
 
-const QUIZ_SYSTEM = `Gere testes de múltipla escolha de Bioquímica Clínica em JSON puro (array de objetos). Não inclua NENHUM texto adicional ou markdown. Formato exato:
-[{"question":"...","options":["A)...","B)...","C)...","D)..."],"correct":0,"explanation":"..."}]
-Nível: 7º semestre Biomedicina. Use: ${KNOWLEDGE}`;
+const QUIZ_SYSTEM = `Gere questões de múltipla escolha de Bioquímica Clínica em JSON puro (array de objetos). Não inclua NENHUM texto adicional. Formato exato:
+[{"question":"... (enunciado longo com caso clínico e dados) ...","options":["A)...","B)...","C)...","D)...","E)..."],"correct":0,"explanation":"..."}]
+Diretrizes:
+- Complexidade: PADRÃO ESTILO ENADE (nível de graduação avançada).
+- Use enunciados longos e bem elaborados, com casos clínicos completos, história do paciente, sintomas e valores de exames.
+- Sinta-se livre para usar o formato de afirmativas (I, II, III) típicos do ENADE nas opções.
+Use: ${KNOWLEDGE}`;
 
 // ─── MARKDOWN ──────────────────────────────────────────────────
 function parseMsg(t) {
@@ -175,7 +179,7 @@ function TypedMsg({ content, onDone }) { const { shown, done, skip } = useTyping
 function StaticMsg({ content }) { return <div>{parseMsg(content).map((p, i) => p.type === "c" ? <NoteBlock key={i} code={p.c} /> : <div key={i}><RichText content={p.c} /></div>)}</div>; }
 
 // ─── QUIZ ──────────────────────────────────────────────────────
-function QuizCard({ quiz, onResult }) { const [sel, setSel] = useState(null); const ok = sel === quiz.correct; return <div style={{ background: "#10101e", border: "1px solid #222238", borderRadius: 12, padding: 14, margin: "10px auto", maxWidth: 650, width: "100%" }}><div style={{ fontSize: 11, color: "#4fc3f7", fontWeight: 700, marginBottom: 6 }}>🧠 QUIZ</div><div style={{ color: "#d0d0e0", fontSize: 13.5, marginBottom: 10, lineHeight: 1.5 }}>{quiz.question}</div><div style={{ display: "flex", flexDirection: "column", gap: 5 }}>{quiz.options.map((o, i) => { const ch = sel === i; return <button key={i} onClick={() => { if (sel === null) { setSel(i); onResult(i === quiz.correct); } }} style={{ background: sel === null ? "#151528" : i === quiz.correct ? "#0d2818" : ch ? "#2d1014" : "#151528", border: `1px solid ${sel === null ? "#2a2a4a" : i === quiz.correct ? "#4caf50" : ch ? "#e05555" : "#2a2a4a"}`, color: "#d0d0e0", borderRadius: 8, padding: "9px 12px", cursor: sel === null ? "pointer" : "default", fontSize: 13, textAlign: "left" }}>{o}{sel !== null && i === quiz.correct && " ✅"}{ch && !ok && " ❌"}</button>; })}</div>{sel !== null && <div style={{ marginTop: 8, padding: "8px 10px", background: ok ? "#0a1e14" : "#1e0a0e", borderRadius: 6, fontSize: 12.5, color: ok ? "#88d4ab" : "#e8a0a0", lineHeight: 1.5 }}>{ok ? "🎉 " : "💡 "}{quiz.explanation}</div>}</div>; }
+function QuizCard({ quiz, onResult }) { const [sel, setSel] = useState(null); const ok = sel === quiz.correct; return <div style={{ background: "#10101e", border: "1px solid #222238", borderRadius: 12, padding: 14, margin: "10px auto", maxWidth: 650, width: "100%" }}><div style={{ fontSize: 11, color: "#4fc3f7", fontWeight: 700, marginBottom: 6 }}>{quiz.isTest ? "📋 TESTE" : "🧠 QUIZ"}</div><div style={{ color: "#d0d0e0", fontSize: 13.5, marginBottom: 10, lineHeight: 1.5 }}>{quiz.question}</div><div style={{ display: "flex", flexDirection: "column", gap: 5 }}>{quiz.options.map((o, i) => { const ch = sel === i; return <button key={i} onClick={() => { if (sel === null) { setSel(i); onResult(i === quiz.correct); } }} style={{ background: sel === null ? "#151528" : i === quiz.correct ? "#0d2818" : ch ? "#2d1014" : "#151528", border: `1px solid ${sel === null ? "#2a2a4a" : i === quiz.correct ? "#4caf50" : ch ? "#e05555" : "#2a2a4a"}`, color: "#d0d0e0", borderRadius: 8, padding: "9px 12px", cursor: sel === null ? "pointer" : "default", fontSize: 13, textAlign: "left" }}>{o}{sel !== null && i === quiz.correct && " ✅"}{ch && !ok && " ❌"}</button>; })}</div>{sel !== null && <div style={{ marginTop: 8, padding: "8px 10px", background: ok ? "#0a1e14" : "#1e0a0e", borderRadius: 6, fontSize: 12.5, color: ok ? "#88d4ab" : "#e8a0a0", lineHeight: 1.5 }}>{ok ? "🎉 " : "💡 "}{quiz.explanation}</div>}</div>; }
 
 // ─── PANELS ────────────────────────────────────────────────────
 function CasesPanel({ onClose, onSelect }) { return <div style={{ background: "#0d1117", borderTop: "1px solid #1e2a3a", padding: 14, flexShrink: 0 }}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><span style={{ color: "#ef5350", fontSize: 12, fontWeight: 700 }}>🏥 Casos Clínicos</span><button onClick={onClose} style={{ background: "none", border: "none", color: "#5a5a7a", cursor: "pointer", fontSize: 15 }}>✕</button></div>{CLINICAL_CASES.map((c, i) => <button key={i} onClick={() => onSelect(c.prompt)} style={{ display: "block", width: "100%", background: "#161b22", border: "1px solid #2a3a4a", color: "#c8d6e5", borderRadius: 8, padding: "10px 14px", cursor: "pointer", fontSize: 13, textAlign: "left", marginBottom: 6 }}>🏥 {c.title}</button>)}</div>; }
@@ -236,7 +240,7 @@ export default function App() {
 
   function typDone() { setTypIdx(-1); if (topic && !completed.includes(topic.id)) { const nc = [...completed, topic.id], nx = xp + 20; setCompleted(nc); setXp(nx); save(nc, nx, hist); } }
 
-  async function getQuiz(amount = 1) { setQuizLoad(true); try { const pmpt = `Gere exatamente ${amount} questão(ões) sobre: ${topic?.name || "bioquímica clínica"}. 7º sem. APENAS UM ARRAY JSON VÁLIDO.`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1500); let parsed = JSON.parse(t.replace(/```json|```/g, "").trim()); if (!Array.isArray(parsed)) parsed = [parsed]; setQuiz(parsed); } catch { setQuiz(null); } setQuizLoad(false); }
+  async function getQuiz(amount = 1) { setQuizLoad(true); setMsgs([]); try { const pmpt = `Gere exatamente ${amount} questão(ões) inéditas. PADRÃO ENADE DE COMPLEXIDADE: cenários clínicos profundos, valores de laboratório detalhados, raciocínio diagnóstico integrado. Tópico: ${topic?.name || "bioquímica clínica"}. APENAS ARRAY JSON VÁLIDO. Seed: ${Math.random()}`; const t = await api(QUIZ_SYSTEM, [{ role: "user", content: pmpt }], 1500); let parsed = JSON.parse(t.replace(/```json|```/g, "").trim()); if (!Array.isArray(parsed)) parsed = [parsed]; parsed = parsed.map(q => ({...q, isTest: amount > 1})); setQuiz(parsed); } catch { setQuiz(null); } setQuizLoad(false); }
 
   function selTopic(t) { setMsgs([]); setQuiz(null); setSidebar(false); send(t.prompt, t); }
 
@@ -273,7 +277,7 @@ export default function App() {
               {m.role === "user" ? m.content : i === typIdx ? <TypedMsg content={m.content} onDone={typDone} /> : <StaticMsg content={m.content} />}
             </div>
           </div>)}
-          {!loading && msgs.length > 1 && typIdx === -1 && <div style={{ display: "flex", gap: 6, padding: "2px 35px", flexWrap: "wrap", animation: "fadeUp .3s" }}>
+          {!loading && (msgs.length > 1 || (quiz && quiz.length > 0)) && typIdx === -1 && <div style={{ display: "flex", gap: 6, padding: "2px 35px", flexWrap: "wrap", animation: "fadeUp .3s" }}>
             {(!quiz || quiz.length === 0) && <button onClick={() => getQuiz(1)} disabled={quizLoad} style={{ background: "#111120", border: "1px solid #222238", color: "#4fc3f7", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600 }}>{quizLoad ? "⏳" : "🧠 Quiz"}</button>}
             <button onClick={() => send("Mais detalhes e exemplos práticos.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>📝 Aprofundar</button>
             <button onClick={() => send("Explique de outro jeito, mais simples.")} style={{ background: "#111120", border: "1px solid #222238", color: "#6a6a8a", borderRadius: 7, padding: "5px 12px", cursor: "pointer", fontSize: 11 }}>🔄 Simplificar</button>
